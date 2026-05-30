@@ -2,23 +2,22 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import streamlit as st
-
 st.set_page_config(page_title="Indian Stock Research Agent", layout="wide")
 
 import yfinance as yf
 import plotly.graph_objects as go
 import os
 from dotenv import load_dotenv
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_core.messages import HumanMessage, SystemMessage
 
 load_dotenv()
 
-# --- Helper Functions ---
 def get_stock_data(symbol, period="3mo"):
     try:
         hist = yf.download(symbol, period=period, auto_adjust=True, progress=False)
         if hist.empty:
             return None, None
-        # Flatten multi-level columns
         hist.columns = hist.columns.get_level_values(0)
         info = yf.Ticker(symbol).info
         return hist, info
@@ -40,7 +39,6 @@ def plot_stock_chart(hist, symbol):
                       yaxis_title="Price (INR)", template="plotly_dark")
     return fig
 
-# --- UI ---
 st.title("🇮🇳 Indian Stock Research Agent")
 st.caption("Track A | Financial Research AI Project")
 
@@ -76,9 +74,43 @@ if 'hist' in st.session_state:
     col3.metric("Low", f"₹{float(hist['Low'].min()):.2f}")
 
     st.plotly_chart(plot_stock_chart(hist, symbol), use_container_width=True)
+
+    st.subheader("💬 Ask AI About This Stock")
+    user_question = st.text_input("Ask a question (e.g. Is this stock trending up?)")
+
+    if st.button("Ask") and user_question:
+        api_key = os.getenv("GOOGLE_API_KEY")
+        if not api_key:
+            st.error("API key not found. Check your .env file.")
+        else:
+            try:
+                llm = ChatGoogleGenerativeAI(
+    model="gemini-flash-latest",
+    google_api_key=api_key,
+    timeout=30,
+    max_retries=1
+)
+                context = f"""
+                Symbol: {symbol}
+                Current Price: ₹{current_price:.2f}
+                Change: {change_pct:.2f}%
+                High: ₹{float(hist['High'].max()):.2f}
+                Low: ₹{float(hist['Low'].min()):.2f}
+                """
+                messages = [
+                    SystemMessage(content="You are a financial research assistant. Always add a disclaimer that this is not investment advice."),
+                    HumanMessage(content=f"Stock Data:\n{context}\n\nQuestion: {user_question}")
+                ]
+                with st.spinner("Thinking..."):
+                    response = llm.invoke(messages)
+                    if isinstance(response.content, list):
+                        st.write(response.content[0]['text'])
+                    else:
+                        st.write(response.content)
+            except Exception as e:
+                st.error(f"AI Error: {e}")
 else:
     st.info("👈 Select a stock and click 'Fetch Data'")
-
 
 st.markdown("---")
 st.caption("⚠️ Educational purposes only. Not financial advice.")
