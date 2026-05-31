@@ -1,10 +1,10 @@
 streamlit
+yfinance
 pandas
 plotly
-python-dotenv
-pillow
-google-generativeai
-pytesseract
-yfinance
 langchain
 langchain-google-genai
+langchain-core
+python-dotenv
+requests
+textblob
