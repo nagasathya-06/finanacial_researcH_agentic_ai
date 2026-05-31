@@ -13,13 +13,25 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 load_dotenv()
 
+@st.cache_data(ttl=300)
 def get_stock_data(symbol, period="3mo"):
     try:
-        hist = yf.download(symbol, period=period, auto_adjust=True, progress=False)
+        import yfinance as yf
+        ticker = yf.Ticker(symbol)
+        hist = ticker.history(period=period)
+        if hist is None or hist.empty:
+            # fallback method
+            hist = yf.download(
+                symbol,
+                period=period,
+                auto_adjust=True,
+                progress=False,
+                ignore_tz=True
+            )
         if hist.empty:
             return None, None
         hist.columns = hist.columns.get_level_values(0)
-        info = yf.Ticker(symbol).info
+        info = ticker.fast_info
         return hist, info
     except Exception as e:
         st.error(f"Error: {e}")
