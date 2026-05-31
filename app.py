@@ -16,11 +16,9 @@ load_dotenv()
 @st.cache_data(ttl=300)
 def get_stock_data(symbol, period="3mo"):
     try:
-        import yfinance as yf
         ticker = yf.Ticker(symbol)
         hist = ticker.history(period=period)
         if hist is None or hist.empty:
-            # fallback method
             hist = yf.download(
                 symbol,
                 period=period,
@@ -31,10 +29,8 @@ def get_stock_data(symbol, period="3mo"):
         if hist.empty:
             return None, None
         hist.columns = hist.columns.get_level_values(0)
-        info = ticker.fast_info
-        return hist, info
+        return hist, None
     except Exception as e:
-        st.error(f"Error: {e}")
         return None, None
 def plot_stock_chart(hist, symbol):
     fig = go.Figure()
