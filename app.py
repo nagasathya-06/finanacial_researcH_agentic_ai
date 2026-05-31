@@ -8,7 +8,6 @@ import yfinance as yf
 import plotly.graph_objects as go
 import os
 import requests
-import time
 from textblob import TextBlob
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
@@ -19,12 +18,14 @@ load_dotenv()
 @st.cache_data(ttl=300)
 def get_stock_data(symbol, period="3mo"):
     try:
-        hist = yf.download(symbol, period=period, auto_adjust=True, progress=False)
+        ticker = yf.Ticker(symbol)
+        hist = ticker.history(period=period)
+        if hist is None or hist.empty:
+            hist = yf.download(symbol, period=period, auto_adjust=True, progress=False, ignore_tz=True)
         if hist.empty:
             return None, None
         hist.columns = hist.columns.get_level_values(0)
-        info = yf.Ticker(symbol).info
-        return hist, info
+        return hist, None
     except Exception as e:
         return None, None
 
@@ -57,7 +58,19 @@ def get_news_sentiment(company_name):
     except Exception as e:
         return [], 0
 
+def add_technical_indicators(hist):
+    hist = hist.copy()
+    hist['MA20'] = hist['Close'].rolling(window=20).mean()
+    hist['MA50'] = hist['Close'].rolling(window=50).mean()
+    delta = hist['Close'].diff()
+    gain = delta.where(delta > 0, 0).rolling(window=14).mean()
+    loss = -delta.where(delta < 0, 0).rolling(window=14).mean()
+    rs = gain / loss
+    hist['RSI'] = 100 - (100 / (1 + rs))
+    return hist
+
 def plot_stock_chart(hist, symbol):
+    hist = add_technical_indicators(hist)
     fig = go.Figure()
     fig.add_trace(go.Candlestick(
         x=hist.index,
@@ -67,14 +80,24 @@ def plot_stock_chart(hist, symbol):
         close=hist['Close'],
         name=symbol
     ))
+    fig.add_trace(go.Scatter(
+        x=hist.index, y=hist['MA20'],
+        line=dict(color='orange', width=1),
+        name='MA20'
+    ))
+    fig.add_trace(go.Scatter(
+        x=hist.index, y=hist['MA50'],
+        line=dict(color='blue', width=1),
+        name='MA50'
+    ))
     fig.update_layout(
         title=f"{symbol} Stock Price",
         xaxis_title="Date",
         yaxis_title="Price (INR)",
         template="plotly_dark",
-        xaxis_rangeslider_visible=False  # removes the mini chart below
+        xaxis_rangeslider_visible=False
     )
-    return fig
+    return fig, hist
 
 # --- UI ---
 st.title("🇮🇳 Indian Stock Research Agent")
@@ -92,7 +115,6 @@ if st.sidebar.button("Fetch Data"):
         hist, info = get_stock_data(symbol, period)
         if hist is not None:
             st.session_state['hist'] = hist
-            st.session_state['info'] = info
             st.session_state['symbol'] = symbol
             company_name = symbol.replace(".NS", "").replace(".BO", "")
             news, avg_score = get_news_sentiment(company_name)
@@ -108,18 +130,23 @@ if 'hist' in st.session_state:
     news = st.session_state.get('news', [])
     avg_score = st.session_state.get('avg_score', 0)
 
-    col1, col2, col3, col4 = st.columns(4)
     current_price = float(hist['Close'].iloc[-1])
     prev_price = float(hist['Close'].iloc[-2])
     change_pct = ((current_price - prev_price) / prev_price) * 100
+    sentiment_label = "🟢 Positive" if avg_score > 0.1 else ("🔴 Negative" if avg_score < -0.1 else "🟡 Neutral")
 
+    col1, col2, col3, col4 = st.columns(4)
     col1.metric("Current Price", f"₹{current_price:.2f}", f"{change_pct:.2f}%")
     col2.metric("High", f"₹{float(hist['High'].max()):.2f}")
     col3.metric("Low", f"₹{float(hist['Low'].min()):.2f}")
-    sentiment_label = "🟢 Positive" if avg_score > 0.1 else ("🔴 Negative" if avg_score < -0.1 else "🟡 Neutral")
     col4.metric("News Sentiment", sentiment_label, f"Score: {avg_score}")
 
-    st.plotly_chart(plot_stock_chart(hist, symbol), use_container_width=True)
+    fig, hist_with_indicators = plot_stock_chart(hist, symbol)
+    st.plotly_chart(fig, use_container_width=True)
+
+    rsi_value = float(hist_with_indicators['RSI'].iloc[-1])
+    rsi_label = "Overbought 🔴" if rsi_value > 70 else ("Oversold 🟢" if rsi_value < 30 else "Neutral 🟡")
+    st.metric("RSI (14)", f"{rsi_value:.2f}", rsi_label)
 
     st.subheader("📰 Latest News & Sentiment")
     if news:
@@ -129,6 +156,23 @@ if 'hist' in st.session_state:
                 st.write(f"[Read Full Article]({article['url']})")
     else:
         st.info("No news found or NEWS_API_KEY missing.")
+
+    st.subheader("📊 Compare Stocks")
+    compare_symbol = st.text_input("Enter another stock to compare (e.g. TCS.NS)")
+    if st.button("Compare") and compare_symbol:
+        hist2, _ = get_stock_data(compare_symbol, period)
+        if hist2 is not None:
+            fig2 = go.Figure()
+            fig2.add_trace(go.Scatter(x=hist.index, y=hist['Close'], name=symbol))
+            fig2.add_trace(go.Scatter(x=hist2.index, y=hist2['Close'], name=compare_symbol))
+            fig2.update_layout(
+                title="Stock Comparison",
+                template="plotly_dark",
+                xaxis_rangeslider_visible=False
+            )
+            st.plotly_chart(fig2, use_container_width=True)
+        else:
+            st.error("Could not fetch comparison stock.")
 
     st.subheader("💬 Ask AI About This Stock")
     user_question = st.text_input("Ask a question (e.g. Is this stock trending up?)")
@@ -151,6 +195,7 @@ if 'hist' in st.session_state:
                 Change: {change_pct:.2f}%
                 High: ₹{float(hist['High'].max()):.2f}
                 Low: ₹{float(hist['Low'].min()):.2f}
+                RSI: {rsi_value:.2f} ({rsi_label})
                 News Sentiment: {sentiment_label} (Score: {avg_score})
                 """
                 messages = [
