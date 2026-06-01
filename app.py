@@ -104,7 +104,7 @@ def plot_stock_chart(hist, symbol):
 # UI — HEADER
 # ─────────────────────────────────────────────────────────────────────────────
 
-st.title(" Indian Stock Research Agent")
+st.title("🇮🇳 Indian Stock Research Agent")
 st.caption("Track A | Weeks 1-6 | Financial Research AI Project")
 
 # ── Market Status Banner (Week 5-6 addition) ─────────────────────────────────
