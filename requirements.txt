@@ -10,3 +10,4 @@ requests
 textblob
 curl_cffi
 pytz
+fpdf2

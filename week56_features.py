@@ -136,12 +136,12 @@ def get_fundamentals(symbol: str) -> dict:
 
 # Predefined Indian sector buckets for quick selection
 INDIAN_SECTORS = {
-    "🖥️ IT / Technology": ["TCS.NS", "INFY.NS", "WIPRO.NS", "HCLTECH.NS", "TECHM.NS"],
-    "🏦 Banking & Finance": ["HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS", "AXISBANK.NS"],
-    "⚡ Energy & Oil": ["RELIANCE.NS", "ONGC.NS", "NTPC.NS", "POWERGRID.NS", "BPCL.NS"],
-    "💊 Pharma & Healthcare": ["SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS", "APOLLOHOSP.NS"],
-    "🏭 Manufacturing / FMCG": ["HINDUNILVR.NS", "ITC.NS", "NESTLEIND.NS", "BRITANNIA.NS", "DABUR.NS"],
-    "🚗 Auto": ["MARUTI.NS", "TATAMOTORS.NS", "M&M.NS", "BAJAJ-AUTO.NS", "HEROMOTOCO.NS"],
+    "IT & Technology": ["TCS.NS", "INFY.NS", "WIPRO.NS", "HCLTECH.NS", "TECHM.NS"],
+    "Banking & Finance": ["HDFCBANK.NS", "ICICIBANK.NS", "SBIN.NS", "KOTAKBANK.NS", "AXISBANK.NS"],
+    "Energy & Utilities": ["RELIANCE.NS", "ONGC.NS", "NTPC.NS", "POWERGRID.NS", "BPCL.NS"],
+    "Pharma & Healthcare": ["SUNPHARMA.NS", "DRREDDY.NS", "CIPLA.NS", "DIVISLAB.NS", "APOLLOHOSP.NS"],
+    "Consumer Goods & FMCG": ["HINDUNILVR.NS", "ITC.NS", "NESTLEIND.NS", "BRITANNIA.NS", "DABUR.NS"],
+    "Automotive": ["MARUTI.NS", "TATAMOTORS.NS", "M&M.NS", "BAJAJ-AUTO.NS", "HEROMOTOCO.NS"],
 }
 
 def get_sector_comparison_data(symbols: list, period: str = "3mo") -> pd.DataFrame:
@@ -169,23 +169,63 @@ def get_sector_comparison_data(symbols: list, period: str = "3mo") -> pd.DataFra
     df_normalised = (df / df.iloc[0]) * 100
     return df_normalised
 
-def plot_sector_comparison(df_normalised: pd.DataFrame, sector_name: str) -> go.Figure:
+def plot_sector_comparison(df_normalised: pd.DataFrame, sector_name: str, theme_mode: str = "dark") -> go.Figure:
     """Plot normalised price comparison for all stocks in the sector."""
     fig = go.Figure()
-    for col in df_normalised.columns:
+    # Curated modern metallic palette (gold, blue, green, red, slate, bronze tones)
+    colors = ["#C8A96E", "#4A9EFF", "#00C48C", "#FF4D6A", "#8A8F9E", "#AA771C"]
+    for i, col in enumerate(df_normalised.columns):
+        color = colors[i % len(colors)]
         fig.add_trace(go.Scatter(
             x=df_normalised.index,
             y=df_normalised[col],
             name=col,
-            mode="lines"
+            mode="lines",
+            line=dict(width=2.5, color=color),
+            hovertemplate="<b>%{text}</b>: %{y:.2f}%<extra></extra>",
+            text=[col] * len(df_normalised)
         ))
+        
+    is_dark = (theme_mode == "dark")
+    bg_surface = "#111318" if is_dark else "#FFFFFF"
+    bg_primary = "#0A0B0E" if is_dark else "#F5F7FA"
+    grid_color = "rgba(255, 255, 255, 0.05)" if is_dark else "rgba(0, 0, 0, 0.05)"
+    text_sec = "#8A8F9E" if is_dark else "#4A4F60"
+    accent_gold = "#C8A96E" if is_dark else "#8E704C"
+    border_color = "rgba(255, 255, 255, 0.1)" if is_dark else "rgba(0, 0, 0, 0.1)"
+    plotly_template = "plotly_dark" if is_dark else "plotly_white"
+    
     fig.update_layout(
-        title=f"Sector Comparison: {sector_name} (Normalised to 100)",
-        xaxis_title="Date",
-        yaxis_title="Relative Performance (Base = 100)",
-        template="plotly_dark",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        title=dict(
+            text=f"🏭 Sector Comparison: {sector_name} (Base = 100)",
+            font=dict(size=16, family="DM Serif Display", color=accent_gold)
+        ),
+        xaxis=dict(
+            gridcolor=grid_color,
+            color=text_sec,
+            linecolor=border_color,
+            tickfont=dict(family="IBM Plex Mono", size=11),
+        ),
+        yaxis=dict(
+            gridcolor=grid_color,
+            color=text_sec,
+            linecolor=border_color,
+            tickfont=dict(family="IBM Plex Mono", size=11),
+        ),
+        hovermode="x unified",
+        plot_bgcolor=bg_surface,
+        paper_bgcolor=bg_primary,
+        template=plotly_template,
         xaxis_rangeslider_visible=False,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            xanchor="right",
+            x=1,
+            font=dict(size=11, color=text_sec, family="IBM Plex Mono")
+        ),
+        margin=dict(l=40, r=40, t=60, b=40),
     )
     return fig
 
@@ -259,3 +299,141 @@ def get_market_status() -> dict:
         "message": message,
         "time_ist": now_ist.strftime("%I:%M %p IST, %A %d %b %Y"),
     }
+
+
+# ─────────────────────────────────────────────
+# 5. PORTFOLIO TRACKER DATABASE
+# ─────────────────────────────────────────────
+
+def init_portfolio_db():
+    """Create the portfolio table if it doesn't exist yet."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS portfolio (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            symbol TEXT NOT NULL,
+            quantity REAL NOT NULL,
+            buy_price REAL NOT NULL,
+            buy_date TEXT NOT NULL
+        )
+    """)
+    conn.commit()
+    conn.close()
+
+def add_portfolio_transaction(symbol: str, quantity: float, buy_price: float, buy_date: str) -> tuple[bool, str]:
+    """Add a stock transaction to the portfolio."""
+    if quantity <= 0:
+        return False, "❌ Quantity must be greater than zero."
+    if buy_price <= 0:
+        return False, "❌ Buy price must be greater than zero."
+    
+    # Validate stock symbol first
+    valid, err_msg = validate_stock_symbol(symbol)
+    if not valid:
+        return False, err_msg
+        
+    init_portfolio_db()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    try:
+        cursor.execute(
+            "INSERT INTO portfolio (symbol, quantity, buy_price, buy_date) VALUES (?, ?, ?, ?)",
+            (symbol.upper().strip(), quantity, buy_price, buy_date)
+        )
+        conn.commit()
+        return True, f"✅ Added {quantity} shares of {symbol.upper().strip()} to portfolio!"
+    except Exception as e:
+        return False, f"❌ Error adding transaction: {str(e)}"
+    finally:
+        conn.close()
+
+def delete_portfolio_transaction(transaction_id: int):
+    """Delete a transaction from portfolio."""
+    init_portfolio_db()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM portfolio WHERE id = ?", (transaction_id,))
+    conn.commit()
+    conn.close()
+
+def get_portfolio_transactions() -> list:
+    """Get all transaction records ordered by buy date."""
+    init_portfolio_db()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, symbol, quantity, buy_price, buy_date FROM portfolio ORDER BY buy_date DESC")
+    rows = cursor.fetchall()
+    conn.close()
+    return rows
+
+def get_portfolio_holdings() -> dict:
+    """Calculate aggregate quantities and average buy prices from transactions."""
+    transactions = get_portfolio_transactions()
+    holdings = {}
+    for tid, symbol, qty, price, date in transactions:
+        if symbol not in holdings:
+            holdings[symbol] = {"quantity": 0.0, "total_cost": 0.0, "transactions": []}
+        holdings[symbol]["quantity"] += qty
+        holdings[symbol]["total_cost"] += qty * price
+        holdings[symbol]["transactions"].append({
+            "id": tid,
+            "quantity": qty,
+            "buy_price": price,
+            "buy_date": date
+        })
+    
+    # Calculate average price
+    for symbol, data in list(holdings.items()):
+        if data["quantity"] > 0:
+            data["avg_price"] = data["total_cost"] / data["quantity"]
+        else:
+            del holdings[symbol]
+            
+    return holdings
+
+
+# ─────────────────────────────────────────────
+# 6. STOCK AND DATE VALIDATION HELPERS
+# ─────────────────────────────────────────────
+
+def validate_stock_symbol(symbol: str) -> tuple[bool, str]:
+    """
+    Validate if a stock symbol is valid and has data available on yfinance.
+    Provides correction recommendations (e.g. suggesting .NS or .BO suffix).
+    """
+    symbol = symbol.strip().upper()
+    if not symbol:
+        return False, "❌ Stock symbol cannot be empty."
+    
+    try:
+        ticker = yf.Ticker(symbol)
+        # Try fetching historical info for 1 day
+        hist = ticker.history(period="1d")
+        if hist is None or hist.empty:
+            if "." not in symbol:
+                return False, f"❌ Invalid symbol '{symbol}'. Did you mean **{symbol}.NS** (NSE) or **{symbol}.BO** (BSE)?"
+            return False, f"❌ Could not retrieve market data for '{symbol}'. Please check if the symbol is valid."
+        return True, "Valid"
+    except Exception as e:
+        return False, f"❌ Error validating symbol: {str(e)}"
+
+def validate_date_range(start_date, end_date) -> tuple[bool, str]:
+    """
+    Validate custom start and end date range.
+    """
+    if not start_date or not end_date:
+        return False, "❌ Start and End dates are required."
+    
+    today = datetime.now().date()
+    
+    if start_date >= end_date:
+        return False, "❌ Start Date must be strictly before End Date."
+    if start_date > today:
+        return False, "❌ Start Date cannot be in the future."
+    if end_date > today:
+        return False, "❌ End Date cannot be in the future."
+    if (end_date - start_date).days > 365 * 30:
+        return False, "❌ Date range cannot exceed 30 years."
+        
+    return True, "Valid"
