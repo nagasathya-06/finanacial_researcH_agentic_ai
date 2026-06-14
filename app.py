@@ -4,6 +4,9 @@ warnings.filterwarnings("ignore")
 import streamlit as st
 st.set_page_config(page_title="Indian Stock Portal", page_icon="favicon.png", layout="wide")
 
+st.set_page_config(page_title="Indian Stock Portal", page_icon="image copy.png", layout="wide")
+
+
 import yfinance as yf
 import plotly.graph_objects as go
 import os
@@ -102,18 +105,58 @@ h1, h2, h3, h4, h5, h6, .luxury-header {{
 /* Sidebar styling */
 section[data-testid="stSidebar"] {{
     background-color: var(--bg-surface) !important;
-    border-right: 1px solid var(--border-subtle) !important;
-    box-shadow: none !important;
+    border-right: 1px solid var(--border-strong) !important;
+    box-shadow: 0 6px 16px rgba(0,0,0,0.05) !important;
+    padding: 6px 6px 8px 6px !important;
+    min-width: 170px !important;
+    position: relative !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
 }}
 section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {{
     color: var(--text-primary) !important;
+    padding-bottom: 0 !important;
 }}
 section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
 section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] strong {{
     color: var(--text-primary) !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }}
 section[data-testid="stSidebar"] h3 {{
     color: var(--text-primary) !important;
+    margin: 0 0 4px 0 !important;
+}}
+/* Add spacing between sidebar controls to improve readability */
+section[data-testid="stSidebar"] .stButton > button {{
+    margin-bottom: 4px !important;
+    padding-top: 6px !important;
+    padding-bottom: 6px !important;
+}}
+/* Make the sidebar content visually grouped */
+section[data-testid="stSidebar"] .sidebar-group {{
+    padding: 2px 0 !important;
+    border-bottom: 1px solid var(--border-subtle) !important;
+    margin-bottom: 4px !important;
+    line-height: 1.1 !important;
+}}
+section[data-testid="stSidebar"] .sidebar-group:last-child {{
+    border-bottom: none !important;
+    margin-bottom: 6px !important;
+}}
+/* Reduce default markdown margins in sidebar */
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p, 
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h1,
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h2,
+section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] h3 {{
+    margin: 0 !important;
+    padding: 0 !important;
+}}
+/* Force inner sidebar divs to not clip/scroll */
+section[data-testid="stSidebar"] div {{
+    max-height: none !important;
+    overflow: visible !important;
 }}
 
 /* Metric cards override */
@@ -447,14 +490,23 @@ div[data-baseweb="select"]:hover, div[data-baseweb="input"]:hover {{
 
 /* Multi-select chips */
 span[data-baseweb="tag"] {{
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     background-color: var(--bg-elevated) !important;
     color: var(--accent-gold) !important;
     border: 1px solid var(--border-strong) !important;
-    border-radius: 4px !important;
+    border-radius: 999px !important;
     font-family: 'IBM Plex Mono', monospace !important;
+    padding: 3px 10px !important;
+    margin: 2px 4px 2px 0 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+    max-width: none !important;
 }}
 span[data-baseweb="tag"] button {{
     color: var(--accent-gold) !important;
+    margin-left: 6px !important;
 }}
 
 /* Expanders as Editorial cards */
@@ -948,9 +1000,14 @@ def render_landing_page():
     border-radius: 12px;
     padding: 24px;
     transition: all 0.3s ease;
+    margin-bottom: 18px;
 }
 .feature-card:hover {
+<<<<<<< HEAD
     border-color: var(--accent-gold);
+=======
+    border-color: var(--accent-blue);   /* Accent blue on hover */
+>>>>>>> 9c12113 (light theme changed)
 }.feature-icon { font-size: 28px; margin-bottom: 12px; }
 .feature-title { font-family: 'DM Serif Display', serif !important; font-size: 18px; margin-bottom: 8px; color: var(--text-primary); }
 .feature-desc { font-family: 'DM Sans', sans-serif !important; font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
@@ -958,7 +1015,7 @@ def render_landing_page():
 </style>
 """, unsafe_allow_html=True)
 
-    hdr_left, hdr_mid, hdr_right = st.columns([1, 3, 1])
+    hdr_left, hdr_mid, hdr_right = st.columns([1, 4, 0.8])
     with hdr_mid:
         st.markdown('<p class="landing-logo" style="text-align:center;">Indian Stock Portal</p>', unsafe_allow_html=True)
     with hdr_right:
@@ -974,11 +1031,14 @@ def render_landing_page():
         unsafe_allow_html=True,
     )
 
-    _, cta_col, _ = st.columns([1, 1.2, 1])
-    with cta_col:
-        if st.button("Open Research Terminal →", key="launch_terminal_btn", use_container_width=True):
-            st.session_state['page'] = 'portal'
-            st.rerun()
+    # center the CTA by using a wider middle column and an inner centered column
+    cta_outer = st.columns([1, 2, 1])
+    with cta_outer[1]:
+        inner = st.columns([1, 2, 1])
+        with inner[1]:
+            if st.button("Open Research Terminal →", key="launch_terminal_btn"):
+                st.session_state['page'] = 'portal'
+                st.rerun()
 
     with st.spinner("Fetching market indices..."):
         indices_data = get_landing_indices()
@@ -1061,6 +1121,7 @@ if st.session_state['page'] == 'landing':
 # ─────────────────────────────────────────────────────────────────────────────
 # GLOBAL SIDEBAR (Bloomberg style)
 # ─────────────────────────────────────────────────────────────────────────────
+st.sidebar.markdown('<div class="sidebar-group">', unsafe_allow_html=True)
 st.sidebar.markdown("### Indian Stock Portal")
 if st.sidebar.button("← Back to Home", key="exit_portal_btn"):
     st.session_state['page'] = 'landing'
@@ -1071,7 +1132,7 @@ if st.sidebar.button(theme_icon, key="portal_theme_btn"):
     st.session_state['theme_mode'] = 'light' if theme_mode == 'dark' else 'dark'
     st.rerun()
 
-st.sidebar.markdown("---")
+st.sidebar.markdown('</div>', unsafe_allow_html=True)
 
 # Sidebar navigation (button list — no radio circles)
 nav_options = ["Stock Research", "Watchlist", "Sector Comparison", "Portfolio"]
@@ -1090,6 +1151,7 @@ else:
         st.session_state["sidebar_nav"], st.session_state["sidebar_nav"]
     )
 
+st.sidebar.markdown('<div class="sidebar-group">', unsafe_allow_html=True)
 st.sidebar.markdown("**Navigation**")
 for nav_label in nav_options:
     is_active = st.session_state["sidebar_nav"] == nav_label
@@ -1103,7 +1165,7 @@ for nav_label in nav_options:
             st.session_state["sidebar_nav"] = nav_label
             st.rerun()
 
-st.sidebar.markdown("---")
+
 
 # Default fallback values for data fetching variables
 symbol = st.session_state.get('symbol', 'RELIANCE.NS')
@@ -1115,6 +1177,9 @@ date_err = ""
 
 
 # Watchlist section with inline sparklines in sidebar
+st.sidebar.markdown('</div>', unsafe_allow_html=True)
+
+st.sidebar.markdown('<div class="sidebar-group">', unsafe_allow_html=True)
 st.sidebar.markdown("**Watchlist**")
 
 wl_rows = get_watchlist()
@@ -1139,10 +1204,10 @@ if wl_rows:
 
         row_html = (
             f'<div style="display:flex;align-items:center;justify-content:space-between;'
-            f'padding:8px 0;border-bottom:1px dashed var(--border-subtle);">'
-            f'<span style="font-family:\'IBM Plex Mono\';font-size:13px;font-weight:500;color:var(--text-primary);">{w_sym}</span>'
-            f'<span>{sparkline_svg}</span>'
-            f'<span style="font-family:\'IBM Plex Mono\';font-size:12px;color:{change_color};font-weight:600;">{change_str}</span>'
+            f'padding:3px 0;border-bottom:none;">'
+            f'<span style="font-family:\'IBM Plex Mono\';font-size:12px;font-weight:600;color:var(--text-primary);">{w_sym}</span>'
+            f'<span style="margin:0 6px">{sparkline_svg}</span>'
+            f'<span style="font-family:\'IBM Plex Mono\';font-size:11px;color:{change_color};font-weight:600;">{change_str}</span>'
             f'</div>'
         )
         st.sidebar.markdown(row_html, unsafe_allow_html=True)
