@@ -2,7 +2,7 @@ import warnings
 warnings.filterwarnings("ignore")
 
 import streamlit as st
-st.set_page_config(page_title="Indian Stock Portal", page_icon="/Users/psailekhya/finanacial_researcH_agentic_ai/image copy.png", layout="wide")
+st.set_page_config(page_title="Indian Stock Portal", page_icon="favicon.png", layout="wide")
 
 import yfinance as yf
 import plotly.graph_objects as go
