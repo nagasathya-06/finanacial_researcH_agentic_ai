@@ -943,15 +943,14 @@ def render_landing_page():
 .section-heading h2 { font-family: 'DM Serif Display', serif; font-size: 30px; font-weight: 400; color: var(--text-primary); margin: 0 0 8px 0; }
 .section-heading p { font-family: 'DM Sans', sans-serif; font-size: 15px; color: var(--text-secondary); max-width: 600px; margin: 0 auto; line-height: 1.6; }
 .feature-card {
-    background: #111827;
-    border: 1px solid #2d3748;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-subtle);
     border-radius: 12px;
     padding: 24px;
     transition: all 0.3s ease;
 }
-
 .feature-card:hover {
-    border-color: #3b82f6;   /* Blue border on hover */
+    border-color: var(--accent-gold);
 }.feature-icon { font-size: 28px; margin-bottom: 12px; }
 .feature-title { font-family: 'DM Serif Display', serif !important; font-size: 18px; margin-bottom: 8px; color: var(--text-primary); }
 .feature-desc { font-family: 'DM Sans', sans-serif !important; font-size: 14px; color: var(--text-secondary); line-height: 1.6; }
