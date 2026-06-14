@@ -280,19 +280,18 @@ def get_market_status() -> dict:
     is_in_hours = market_open <= time_now <= market_close
 
     if is_weekday and is_in_hours:
-        status = "🟢 OPEN"
-        message = f"NSE/BSE is currently **open**. Last price updates are live."
+        status = "OPEN"
+        message = "NSE/BSE is currently open. Live prices are updating."
     elif is_weekday and time_now < market_open:
-        status = "🟡 PRE-MARKET"
+        status = "PRE-MARKET"
         opens_in = market_open - time_now
         message = f"Market opens in {opens_in // 60}h {opens_in % 60}m (at 9:15 AM IST)."
     elif is_weekday and time_now > market_close:
-        status = "🔴 CLOSED"
-        message = "Market closed for today. Showing last available prices."
+        status = "CLOSED"
+        message = "Market closed for today. Showing last available closing prices."
     else:
-        status = "🔴 WEEKEND"
-        days_to_monday = (7 - weekday) % 7 or 7
-        message = f"Market is closed (weekend). Opens Monday at 9:15 AM IST."
+        status = "WEEKEND"
+        message = "Market is closed (weekend). Opens Monday at 9:15 AM IST."
 
     return {
         "status": status,
