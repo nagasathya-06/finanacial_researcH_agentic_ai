@@ -6,6 +6,12 @@
 [![AI Integration](https://img.shields.io/badge/GenAI-Google%20Gemini-orange.svg)](https://ai.google.dev/)
 [![PDF Generation](https://img.shields.io/badge/PDF%20Export-FPDF2-green.svg)](https://github.com/py-pdf/fpdf2)
 
+## 🚀 Live Demo
+
+🔗 **[indian-stock-reasearch-agent.streamlit.app](https://indian-stock-reasearch-agent.streamlit.app/)**
+
+---
+
 An advanced, Bloomberg-inspired AI financial research assistant and portfolio tracker tailored specifically for the Indian Stock Market (NSE/BSE). This application fetches real-time market data, computes technical indicators, performs news sentiment analysis, manages watchlists and portfolio holdings in a SQLite database, validates inputs, alerts on market closures, and exports clean, publication-quality PDF reports.
 
 ---
